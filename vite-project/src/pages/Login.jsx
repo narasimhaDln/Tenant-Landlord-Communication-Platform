@@ -3,6 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { auth } from '../services/api';
 import { Eye, EyeOff, Mail, Lock, Info, AlertCircle, User, Building } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConnectionStatus from '../components/ConnectionStatus';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -48,7 +49,23 @@ const Login = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await auth.login(formData);
+      
+      // Normalize the email
+      const loginData = {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password
+      };
+      
+      console.log('🔐 Attempting login with MongoDB:', loginData.email);
+      const response = await auth.login(loginData);
+      
+      // Check if this is a mock response
+      const isMockResponse = response.data.token && response.data.token.includes('mock-jwt-token');
+      if (isMockResponse) {
+        console.log('⚠️ Using mock authentication - credentials stored locally only');
+      } else {
+        console.log('✅ Login successful with MongoDB:', response.data.user.email);
+      }
       
       // Use the login function from AuthContext
       login(response.data.token, response.data.user);
@@ -64,7 +81,29 @@ const Login = () => {
       navigate(from, { replace: true });
     } catch (err) {
       setLoginAttempts(prev => prev + 1);
-      setError(err.message || 'Login failed. Please try again.');
+      
+      // Check if the error is connectivity related
+      const isConnectivityError = 
+        err.message && (
+          err.message.includes('connect') || 
+          err.message.includes('network') ||
+          err.message.includes('offline') ||
+          err.message.includes('server')
+        );
+      
+      if (isConnectivityError) {
+        setError(`Server connection error: ${err.message}. The app will work offline.`);
+      } else if (err.notRegistered) {
+        // Special case for users who haven't registered yet
+        setError("This email is not registered. Please sign up first to access the application.");
+      } else {
+        // Extract the error message from the error object
+        const errorMessage = err.message || 'Login failed. Please try again.';
+        setError(errorMessage);
+      }
+      
+      // Log additional details for debugging
+      console.error('❌ Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -196,16 +235,29 @@ const Login = () => {
           </div>
           
           {error && (
-            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md animate-pulse" role="alert">
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-md" role="alert">
               <div className="flex">
                 <AlertCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
                 <span className="text-sm">{error}</span>
               </div>
-              {loginAttempts > 2 && (
+              
+              {error.includes('not registered') || error.includes('sign up') ? (
+                <div className="mt-3 text-sm">
+                  <div className="flex flex-col">
+                    <p className="font-medium mb-2">You need to create an account first:</p>
+                    <Link 
+                      to="/register" 
+                      className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md text-center transition-colors"
+                    >
+                      Sign up now
+                    </Link>
+                  </div>
+                </div>
+              ) : loginAttempts > 2 ? (
                 <div className="mt-2 text-sm">
                   <p>Forgot your password? <a href="#" className="text-red-700 underline">Reset it here</a></p>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
           
@@ -352,6 +404,9 @@ const Login = () => {
           
           <div className="mt-8 text-center text-xs text-gray-500">
             <p>By signing in, you agree to our <a href="#" className="underline">Terms of Service</a> and <a href="#" className="underline">Privacy Policy</a>.</p>
+            
+            {/* Database connection status indicator */}
+            <ConnectionStatus />
           </div>
         </div>
       </div>

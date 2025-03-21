@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../services/api';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import ConnectionStatus from '../components/ConnectionStatus';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const validateForm = () => {
     const newErrors = {};
@@ -69,18 +71,67 @@ const Register = () => {
 
     try {
       setLoading(true);
-      const response = await auth.register({
-        name: formData.name,
-        email: formData.email,
+      setErrors({});
+      
+      // Create a clean registration object
+      const registrationData = {
+        name: formData.name.trim(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         role: formData.role
-      });
+      };
       
-      // Use the login function from AuthContext
-      login(response.data.token, response.data.user);
-      navigate('/dashboard');
+      console.log('🚀 Submitting registration to MongoDB:', registrationData.email);
+      
+      // Attempt to register user
+      const response = await auth.register(registrationData);
+      
+      // Check if this is a mock response
+      const isMockResponse = response.data.token && response.data.token.includes('mock-jwt-token');
+      if (isMockResponse) {
+        console.log('⚠️ Using mock registration - credentials stored locally only');
+        // Add warning to the success message
+        setSuccess(true);
+        setErrors({ 
+          warning: 'Your account was created in offline mode. Your credentials are stored locally only.'
+        });
+      } else {
+        // Show success message for MongoDB registration
+        setSuccess(true);
+        console.log('✅ MongoDB registration successful, user data:', response.data.user);
+      }
+      
+      // Brief delay to show success message before redirect
+      setTimeout(() => {
+        // Use the login function from AuthContext
+        login(response.data.token, response.data.user);
+        navigate('/dashboard');
+      }, 1500);
+      
     } catch (err) {
-      setErrors({ submit: err.message || 'Registration failed. Please try again.' });
+      console.error('❌ Registration error:', err);
+      
+      // Check if the error is connectivity related
+      const isConnectivityError = 
+        err.message && (
+          err.message.includes('connect') || 
+          err.message.includes('network') ||
+          err.message.includes('offline') ||
+          err.message.includes('server')
+        );
+      
+      if (isConnectivityError) {
+        setErrors({ 
+          submit: `Server connection error: ${err.message}. The app will work offline.`,
+          warning: 'Registration will store your credentials locally only.'
+        });
+      } else {
+        // Extract the error message from the error object
+        const errorMessage = err.message || 'Registration failed. Please try again.';
+        setErrors({ submit: errorMessage });
+      }
+      
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
@@ -98,6 +149,18 @@ const Register = () => {
           {errors.submit && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
               <span className="block sm:inline">{errors.submit}</span>
+            </div>
+          )}
+          
+          {errors.warning && (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">{errors.warning}</span>
+            </div>
+          )}
+          
+          {success && (
+            <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+              <span className="block sm:inline">Account created successfully! Redirecting to dashboard...</span>
             </div>
           )}
           
@@ -213,6 +276,11 @@ const Register = () => {
               Login in
             </Link>
           </p>
+          
+          {/* Database connection status indicator */}
+          <div className="mt-4">
+            <ConnectionStatus />
+          </div>
         </div>
       </div>
     </div>

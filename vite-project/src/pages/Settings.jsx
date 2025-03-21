@@ -176,7 +176,7 @@ const Settings = () => {
     } catch (error) {
       console.error('Error refreshing notifications:', error);
       setSettings(prev => ({
-        ...prev,
+        ...prev, 
         loading: false
       }));
       return [];

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const auth = require('../middleware/auth');
 
 // Register
 router.post('/register', async (req, res) => {
@@ -81,6 +82,31 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
+});
+
+// Verify token endpoint
+router.get('/verify', auth, (req, res) => {
+  try {
+    // If middleware passes, the token is valid
+    res.json({ 
+      valid: true, 
+      message: 'Token is valid',
+      user: req.user
+    });
+  } catch (error) {
+    res.status(401).json({ 
+      valid: false, 
+      message: 'Invalid token'
+    });
+  }
+});
+
+// Server status endpoint
+router.get('/status', (req, res) => {
+  res.json({ 
+    status: 'online',
+    message: 'Authentication server is running'
+  });
 });
 
 module.exports = router; 

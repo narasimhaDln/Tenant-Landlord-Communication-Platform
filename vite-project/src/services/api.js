@@ -1,9 +1,76 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api';
+// Get API URL from environment or use the default
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Check if we should use mock data (when backend is not available)
-const USE_MOCK_DATA = true;
+// Always use MongoDB - backend is already running
+let USE_MOCK_DATA = false;
+
+// Log initial mode
+console.log('API Mode: Using MongoDB Connection');
+console.log('MongoDB URL:', API_URL);
+
+// Function to check server availability
+const checkServerAvailability = async () => {
+  try {
+    console.log('🔍 Checking MongoDB server availability at:', API_URL);
+    
+    const response = await fetch(`${API_URL}/auth/status`, { 
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (response.ok) {
+      console.log('✅ MongoDB server is available');
+      USE_MOCK_DATA = false;
+    } else {
+      console.log(`⚠️ MongoDB server responded with status: ${response.status}`);
+      // Still using MongoDB even if status isn't 200
+      USE_MOCK_DATA = false;
+    }
+  } catch (error) {
+    console.error('⚠️ MongoDB connection error:', error.message);
+    // Keep using MongoDB anyway - don't fall back to mock data
+    USE_MOCK_DATA = false;
+  }
+  
+  console.log('💾 USING MONGODB CONNECTION: Data will be saved to database');
+  console.log('   - Using MongoDB connection at:', API_URL);
+};
+
+// Try to connect to the server on startup
+checkServerAvailability();
+
+// Local storage key for registered users
+const REGISTERED_USERS_KEY = 'propconnect_registered_users';
+
+// Get previously registered users from localStorage
+const getSavedUsers = () => {
+  try {
+    const savedUsers = localStorage.getItem(REGISTERED_USERS_KEY);
+    return savedUsers ? JSON.parse(savedUsers) : [];
+  } catch (err) {
+    console.error('Error retrieving saved users:', err);
+    return [];
+  }
+};
+
+// Combined users (mock + registered)
+const getUsers = () => {
+  return [...MOCK_USERS, ...getSavedUsers()];
+};
+
+// Save users to localStorage
+const saveUsers = (users) => {
+  localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
+};
+
+// Initialize users collection on load
+(() => {
+  // This ensures the users collection is loaded on first use
+  const existingUsers = getSavedUsers();
+  console.log('Loaded users from storage:', existingUsers.length);
+})();
 
 // Mock data for maintenance requests
 const MOCK_MAINTENANCE_REQUESTS = [
@@ -107,59 +174,129 @@ api.interceptors.response.use(
 // Auth services
 export const auth = {
   login: async (credentials) => {
-    if (USE_MOCK_DATA) {
-      // Check if the credentials match any of our mock users
-      const matchedUser = MOCK_USERS.find(
-        user => user.email === credentials.email && user.password === credentials.password
-      );
+    // Normalize the email to lowercase
+    credentials.email = credentials.email.toLowerCase().trim();
+    
+    console.log(`🔐 Attempting login with MongoDB: ${credentials.email}`);
+    
+    try {
+      // Try to login with the backend server
+      const response = await api.post('/auth/login', credentials);
+      console.log('✅ Login successful with MongoDB:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ MongoDB login error:', error);
       
-      if (matchedUser) {
-        // Return the matched user (without the password)
-        const { password, ...userWithoutPassword } = matchedUser;
-        
-        return mockResponse({
-          token: `mock-jwt-token-${matchedUser.role}-${Date.now()}`,
-          user: userWithoutPassword
-        });
+      // If there's a specific error message from the server
+      if (error.message && typeof error.message === 'string') {
+        return Promise.reject({ message: error.message });
       }
       
-      // For demo purposes, allow any login but default to tenant role if no match
-      // This makes testing easier while still allowing specific role testing with known credentials
-      const mockUser = {
-        id: Date.now().toString(),
-        name: credentials.email.split('@')[0],
-        email: credentials.email,
-        role: 'tenant',
-        avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 50) + 1}.jpg`
-      };
-      
-      // Simulate API delay
-      return mockResponse({
-        token: 'mock-jwt-token-tenant-' + Date.now(),
-        user: mockUser
+      // Generic error
+      return Promise.reject({ 
+        message: 'Login failed. Please try again.' 
       });
     }
-    
-    return api.post('/auth/login', credentials);
   },
   register: async (userData) => {
-    if (USE_MOCK_DATA) {
-      // Create mock user from registration data
-      const mockUser = {
-        id: Date.now().toString(),
-        name: userData.name || userData.email.split('@')[0],
-        email: userData.email,
-        role: userData.role || 'tenant', // Default to tenant if no role provided
-        avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 50) + 1}.jpg`
-      };
+    // Normalize the email to lowercase
+    userData.email = userData.email.toLowerCase().trim();
+    
+    console.log(`🚀 Registering user with MongoDB: ${userData.email}`);
+    
+    try {
+      // Try to register with the backend server
+      const response = await api.post('/auth/register', userData);
+      console.log('✅ User registered successfully in MongoDB:', response.data);
+      return response;
+    } catch (error) {
+      console.error('❌ MongoDB registration error:', error);
       
-      // Simulate API delay
-      return mockResponse({
-        token: `mock-jwt-token-${mockUser.role}-${Date.now()}`,
-        user: mockUser
+      // If there's a specific error message from the server
+      if (error.message && typeof error.message === 'string') {
+        return Promise.reject({ message: error.message });
+      }
+      
+      // Generic error
+      return Promise.reject({ 
+        message: 'Registration failed. Please try again.' 
       });
     }
-    return api.post('/auth/register', userData);
+  },
+  checkAuthStatus: () => {
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
+    if (token && user) {
+      try {
+        const userData = JSON.parse(user);
+        // Verify the user still exists in our database
+        const allUsers = getUsers();
+        const userExists = allUsers.some(u => u.id === userData.id || u.email === userData.email);
+        
+        if (userExists) {
+          return { isAuthenticated: true, user: userData };
+        } else {
+          // User no longer exists in database
+          return { isAuthenticated: false, user: null };
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        return { isAuthenticated: false, user: null };
+      }
+    }
+    
+    return { isAuthenticated: false, user: null };
+  }
+};
+
+// Function to test database connection
+export const testConnection = async () => {
+  try {
+    console.log('Testing MongoDB connection to:', API_URL);
+    
+    // Set up timeout with AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    
+    try {
+      const response = await fetch(`${API_URL}/auth/status`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`✅ MongoDB server connection successful: ${response.status}`);
+      
+      return {
+        connected: true,
+        mode: 'mongodb',
+        message: 'Connected to MongoDB database successfully.',
+        details: {
+          status: response.status,
+          statusText: response.statusText
+        }
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      console.error('❌ MongoDB connection error:', error.message);
+      
+      return {
+        connected: false,
+        mode: 'error',
+        message: 'Cannot connect to MongoDB server.',
+        error: error.message || 'Unknown error'
+      };
+    }
+  } catch (error) {
+    console.error('❌ Connection test failed:', error);
+    return {
+      connected: false,
+      mode: 'error',
+      message: 'Error testing MongoDB connection.',
+      error: error.message || 'Unknown error'
+    };
   }
 };
 

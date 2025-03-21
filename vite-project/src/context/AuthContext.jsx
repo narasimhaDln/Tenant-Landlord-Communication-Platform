@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { auth } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -11,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   // Load authentication state from localStorage with a delay
   useEffect(() => {
     // Check if we're on the login page
-    const isLoginPage = window.location.pathname === '/login';
+    const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/register';
     
     // Don't auto-login if user is on the login page
     if (isLoginPage) {
@@ -19,24 +20,29 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     
-    // Load auth state from localStorage for other pages
-    const savedToken = localStorage.getItem('token');
+    // Check authentication status
+    const { isAuthenticated, user: authUser } = auth.checkAuthStatus();
     
-    if (savedToken) {
+    if (isAuthenticated && authUser) {
       try {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
+        const savedToken = localStorage.getItem('token');
+        if (savedToken) {
           setToken(savedToken);
-          setUser(JSON.parse(savedUser));
+          setUser(authUser);
+          console.log('User authenticated:', authUser.email);
         } else {
-          // Clear token if user data missing
-          localStorage.removeItem('token');
+          // Clear user if token is missing
+          localStorage.removeItem('user');
         }
       } catch (err) {
         console.error('Error loading auth state:', err);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
+    } else {
+      // Clear invalid auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
     
     setLoading(false);

@@ -12,6 +12,7 @@ import Register from './pages/Register';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PublicRoute from './components/auth/PublicRoute';
 import { useAuth } from './context/AuthContext';
+import { testConnection } from './services/api';
 
 // Splash screen component shown during initial load
 const SplashScreen = () => (
@@ -56,6 +57,20 @@ const InitialRedirect = () => {
 };
 
 function App() {
+  // Check MongoDB connection on startup
+  useEffect(() => {
+    const checkMongoDBConnection = async () => {
+      try {
+        const connectionStatus = await testConnection();
+        console.log('MongoDB connection status:', connectionStatus.message);
+      } catch (error) {
+        console.error('Failed to check MongoDB connection:', error);
+      }
+    };
+    
+    checkMongoDBConnection();
+  }, []);
+  
   return (
     <div className="min-h-screen bg-gray-50">
       <Routes>
