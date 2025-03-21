@@ -146,6 +146,17 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    
+    // Verify token format
+    try {
+      const isValidToken = token.split('.').length === 3;
+      if (!isValidToken) {
+        console.warn('Invalid token format detected in request interceptor');
+        // Don't clear token here - let AuthContext handle that
+      }
+    } catch (err) {
+      console.error('Error validating token format:', err);
+    }
   }
   return config;
 });
@@ -227,26 +238,59 @@ export const auth = {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
     
-    if (token && user) {
-      try {
-        const userData = JSON.parse(user);
-        // Verify the user still exists in our database
-        const allUsers = getUsers();
-        const userExists = allUsers.some(u => u.id === userData.id || u.email === userData.email);
-        
-        if (userExists) {
-          return { isAuthenticated: true, user: userData };
-        } else {
-          // User no longer exists in database
-          return { isAuthenticated: false, user: null };
-        }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        return { isAuthenticated: false, user: null };
-      }
+    // Fast initial check - do we have both token and user?
+    if (!token || !user) {
+      return { isAuthenticated: false, user: null };
     }
     
-    return { isAuthenticated: false, user: null };
+    try {
+      // Parse user data
+      const userData = JSON.parse(user);
+      
+      // Basic validation that token looks like a JWT
+      const isTokenValid = token.split('.').length === 3;
+      
+      if (!isTokenValid) {
+        console.warn('Invalid token format detected');
+        return { isAuthenticated: false, user: null };
+      }
+      
+      // Additional check - make sure user has required fields
+      if (!userData || !userData.email) {
+        console.warn('Invalid user data format detected');
+        return { isAuthenticated: false, user: null };
+      }
+      
+      // Advanced - check token expiration if JWT has exp claim
+      try {
+        const tokenData = JSON.parse(atob(token.split('.')[1]));
+        if (tokenData.exp && tokenData.exp * 1000 < Date.now()) {
+          console.warn('Token has expired');
+          return { isAuthenticated: false, user: null, expired: true };
+        }
+      } catch (e) {
+        // Parsing error, but we'll still proceed with other checks
+        console.warn('Could not parse token data');
+      }
+      
+      // Verify the user still exists in our database
+      const allUsers = getUsers();
+      const userExists = allUsers.some(u => 
+        (u.id && userData.id && u.id === userData.id) || 
+        (u.email && userData.email && u.email.toLowerCase() === userData.email.toLowerCase())
+      );
+      
+      if (userExists) {
+        return { isAuthenticated: true, user: userData };
+      } else {
+        // User no longer exists in database
+        console.warn('User not found in database');
+        return { isAuthenticated: false, user: null, userNotFound: true };
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+      return { isAuthenticated: false, user: null, error: true };
+    }
   }
 };
 

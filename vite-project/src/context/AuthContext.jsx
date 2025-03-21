@@ -4,64 +4,28 @@ import { auth } from '../services/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  // Initialize state from localStorage if available, but with deferred loading
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Load authentication state from localStorage with a delay
-  useEffect(() => {
-    // Check if we're on the login page
-    const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/register';
-    
-    // Don't auto-login if user is on the login page
-    if (isLoginPage) {
-      setLoading(false);
-      return;
-    }
-    
-    // Check authentication status
-    const { isAuthenticated, user: authUser } = auth.checkAuthStatus();
-    
-    if (isAuthenticated && authUser) {
+  // Initialize state directly from localStorage for immediate authentication
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem('token') || null;
+  });
+  
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
       try {
-        const savedToken = localStorage.getItem('token');
-        if (savedToken) {
-          setToken(savedToken);
-          setUser(authUser);
-          console.log('User authenticated:', authUser.email);
-        } else {
-          // Clear user if token is missing
-          localStorage.removeItem('user');
-        }
-      } catch (err) {
-        console.error('Error loading auth state:', err);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        return JSON.parse(savedUser);
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e);
+        return null;
       }
-    } else {
-      // Clear invalid auth data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
     }
-    
-    setLoading(false);
-  }, []);
+    return null;
+  });
+  
+  const [loading, setLoading] = useState(false);
 
-  // Login function
-  const login = (authToken, userData) => {
-    setToken(authToken);
-    setUser(userData);
-    
-    // Save to localStorage for persistence
-    localStorage.setItem('token', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
-    
-    setLoading(false);
-  };
-
-  // Logout function
-  const logout = () => {
+  // Define logout function first to avoid reference issues
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     
@@ -71,18 +35,60 @@ export const AuthProvider = ({ children }) => {
     
     // Also clear maintenance requests to avoid persistence issues
     localStorage.removeItem('maintenanceRequests');
+  }, []);
+
+  // Function to verify if stored token is valid
+  const verifyStoredAuth = useCallback(() => {
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+    
+    if (!storedToken || !storedUser) {
+      return false;
+    }
+    
+    try {
+      // Basic JWT structure validation (3 parts separated by dots)
+      if (storedToken.split('.').length !== 3) {
+        console.warn('Invalid token format in localStorage');
+        return false;
+      }
+      
+      // Parse stored user
+      const parsedUser = JSON.parse(storedUser);
+      if (!parsedUser || !parsedUser.email) {
+        console.warn('Invalid user data in localStorage');
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error('Error verifying stored auth:', err);
+      return false;
+    }
+  }, []);
+
+  // Login function
+  const login = useCallback((authToken, userData) => {
+    setToken(authToken);
+    setUser(userData);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
     
     setLoading(false);
-  };
+  }, []);
 
   // Update user information
-  const updateUser = (updatedUserData) => {
-    const updatedUser = { ...user, ...updatedUserData };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-  };
+  const updateUser = useCallback((updatedUserData) => {
+    setUser(prev => {
+      const updatedUser = { ...prev, ...updatedUserData };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+  }, []);
 
-  // Create context value
+  // Create context value - use memoized value to prevent unnecessary re-renders
   const value = {
     token,
     user,

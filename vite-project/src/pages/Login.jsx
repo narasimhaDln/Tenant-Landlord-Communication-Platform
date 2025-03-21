@@ -77,8 +77,12 @@ const Login = () => {
         localStorage.removeItem('rememberedEmail');
       }
       
-      // Navigate to the redirect path (either previous location or dashboard)
-      navigate(from, { replace: true });
+      // Wait a moment before redirecting to ensure state is updated
+      setTimeout(() => {
+        // Navigate to the redirect path (either previous location or dashboard)
+        navigate(from, { replace: true });
+        setLoading(false);
+      }, 300);
     } catch (err) {
       setLoginAttempts(prev => prev + 1);
       
@@ -104,7 +108,6 @@ const Login = () => {
       
       // Log additional details for debugging
       console.error('❌ Login error:', err);
-    } finally {
       setLoading(false);
     }
   };

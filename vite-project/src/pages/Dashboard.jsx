@@ -295,7 +295,11 @@ const Dashboard = () => {
                               <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-2">
                                 <User size={16} className="text-gray-600" />
                               </div>
-                              <div className="text-sm text-gray-900">{typeof request.createdBy === 'object' ? request.createdBy.name || 'Unknown User' : request.createdBy || 'John Doe'}</div>
+                              <div className="text-sm text-gray-900">
+                                {typeof request.createdBy === 'object' 
+                                  ? request.createdBy.name || request.createdBy.email || 'Unknown User'
+                                  : request.createdBy || 'John Doe'}
+                              </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
