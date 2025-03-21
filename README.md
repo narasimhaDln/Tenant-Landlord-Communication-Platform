@@ -10,7 +10,7 @@ Deployment Link:https://67dd3bbb605cc1008afe8321--regal-sopapillas-bd2ed5.netlif
 GitHub Link:https://github.com/narasimhaDln/Tenant-Landlord-Communication-Platform
 
 
-Screenshots:
+## 📸 Screenshots
 https://docs.google.com/document/d/1SoB2g6WfpqWYQRRsKIBMhgmV7_YNiEO2TnzO2852P_Y/edit?usp=sharing
 
 
@@ -25,28 +25,7 @@ https://docs.google.com/document/d/1SoB2g6WfpqWYQRRsKIBMhgmV7_YNiEO2TnzO2852P_Y/
 - **🔔 Smart Notifications**: Real-time alerts for maintenance updates, messages, and payments
 - **🌓 Dark/Light Mode**: User preference-based theme switching
 
-## 📸 Screenshots
 
-<div align="center">
-  <img src="https://i.imgur.com/8jNbEAs.png" alt="Dashboard" width="80%" />
-  <p><em>Dashboard - Overview of tenant activities and notifications</em></p>
-  <br/>
-  
-  <div style="display: flex; justify-content: space-between;">
-    <div style="flex: 1; margin-right: 10px;">
-      <img src="https://i.imgur.com/HzJzAT4.png" alt="Maintenance Requests" width="100%" />
-      <p><em>Maintenance Request Management</em></p>
-    </div>
-    <div style="flex: 1; margin-left: 10px;">
-      <img src="https://i.imgur.com/0jzlVfO.png" alt="Payment System" width="100%" />
-      <p><em>Payment System Interface</em></p>
-    </div>
-  </div>
-  <br/>
-  
-  <img src="https://i.imgur.com/ZA5SgWO.png" alt="Messaging" width="80%" />
-  <p><em>Real-time Messaging Platform</em></p>
-</div>
 
 ## 🛠️ Technical Implementation
 
