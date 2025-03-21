@@ -111,7 +111,7 @@ const Schedule = () => {
   return (
     <div>
       <Header />
-      <main className="p-6">
+      <main className="p-4 sm:p-6">
         {notification && (
           <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-md z-50 ${
             notification.type === 'error' ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
@@ -120,11 +120,11 @@ const Schedule = () => {
           </div>
         )}
         
-        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <CalendarIcon className="text-blue-500" />
-              Schedule Maintenance Visit
+              Schedule Maintenance
             </h1>
             <div className="flex items-center gap-2">
               <button 
@@ -134,8 +134,8 @@ const Schedule = () => {
               >
                 <ChevronLeft size={20} />
               </button>
-              <span className="font-medium">
-                {format(weekDays[0], 'MMMM d')} - {format(weekDays[6], 'MMMM d, yyyy')}
+              <span className="font-medium text-sm sm:text-base">
+                {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d')}
               </span>
               <button 
                 className="p-2 hover:bg-gray-100 rounded-lg"
@@ -153,7 +153,63 @@ const Schedule = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-8 gap-4">
+          {/* Mobile view - scrollable calendar days */}
+          <div className="sm:hidden mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="font-medium">Select a day:</h3>
+            </div>
+            <div className="flex overflow-x-auto pb-2 gap-2">
+              {weekDays.map((date) => (
+                <div 
+                  key={date.toString()}
+                  onClick={() => setSelectedDate(date)}
+                  className={`flex-shrink-0 p-2 rounded-lg flex flex-col items-center ${
+                    isSameDay(date, selectedDate) 
+                      ? 'bg-blue-100 border border-blue-500' 
+                      : isSameDay(date, new Date())
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="text-sm font-medium">{format(date, 'EEE')}</div>
+                  <div className="text-lg">{format(date, 'd')}</div>
+                </div>
+              ))}
+            </div>
+            
+            <h3 className="font-medium mt-4 mb-2">Select a time slot for {format(selectedDate, 'MMMM d')}:</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {timeSlots.map((time) => {
+                const isBooked = isTimeSlotBooked(selectedDate, time);
+                const isSelected = selectedTimeSlot && 
+                                  isSameDay(selectedTimeSlot.date, selectedDate) && 
+                                  selectedTimeSlot.time === time;
+                
+                return (
+                  <div
+                    key={`${selectedDate}-${time}`}
+                    onClick={() => !isBooked && handleTimeSlotSelect(selectedDate, time)}
+                    className={`p-3 border rounded-lg transition-colors flex items-center justify-center ${
+                      isBooked 
+                        ? 'bg-gray-100 cursor-not-allowed' 
+                        : isSelected
+                        ? 'bg-blue-200 border-blue-500 border-2'
+                        : 'hover:bg-blue-50 cursor-pointer'
+                    }`}
+                  >
+                    <Clock size={14} className="mr-2 text-gray-500" />
+                    <span>{time}</span>
+                    {isBooked && (
+                      <span className="ml-2 text-xs text-red-500">Booked</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop view - week grid */}
+          <div className="hidden sm:grid grid-cols-8 gap-4">
             {/* Time slots column */}
             <div className="border-r pt-16">
               {timeSlots.map((time) => (
@@ -209,44 +265,43 @@ const Schedule = () => {
 
           {selectedTimeSlot && (
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-medium">Book appointment for {format(selectedTimeSlot.date, 'MMMM d, yyyy')} at {selectedTimeSlot.time}</h3>
+              <h3 className="font-medium text-sm sm:text-base">Book appointment for {format(selectedTimeSlot.date, 'MMMM d')} at {selectedTimeSlot.time}</h3>
               <div className="mt-3 flex flex-wrap gap-3">
                 <button 
-                  onClick={() => bookAppointment('Plumbing Repair')}
+                  onClick={() => bookAppointment('Plumbing')}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                 >
-                  Book Plumbing Service
+                  Plumbing
                 </button>
                 <button 
-                  onClick={() => bookAppointment('Electrical Repair')}
+                  onClick={() => bookAppointment('Electrical')}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                 >
-                  Book Electrical Service
+                  Electrical
                 </button>
                 <button 
-                  onClick={() => bookAppointment('Maintenance service')}
+                  onClick={() => bookAppointment('Maintenance')}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                 >
-                Maintenance service
+                  Maintenance
                 </button>
                 <button 
-                  onClick={() => bookAppointment('General Inquiry Appointment ')}
+                  onClick={() => bookAppointment('Inquiry')}
                   disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-                > General Inquiry Appointment 
-                   </button>
-                   <button 
-                  onClick={() => bookAppointment('Rent Payment Discussion ')}
-                  disabled={isLoading}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
                 >
-                Rent Payment Discussion
-             
+                  Inquiry
                 </button>
-
+                <button 
+                  onClick={() => bookAppointment('Payment')}
+                  disabled={isLoading}
+                  className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  Payment
+                </button>
                 <button 
                   onClick={() => setSelectedTimeSlot(null)}
                   className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg"

@@ -115,12 +115,12 @@ const Settings = () => {
       
       // Map maintenance requests to notification format
       const maintenanceNotifications = maintenanceData.map(request => ({
-        id: request.id || `maintenance-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: request._id || `maintenance-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'maintenance',
-        title: `Maintenance Request: ${request.issue}`,
-        message: `Status: ${request.status}`,
-        status: request.status,
-        date: request.date || new Date().toISOString(),
+        title: `Maintenance Request: ${request.title || 'Untitled'}`,
+        message: `Status: ${request.status || 'pending'}`,
+        status: request.status || 'pending',
+        date: request.createdAt || new Date().toISOString(),
         read: false
       }));
       
@@ -132,7 +132,7 @@ const Settings = () => {
         id: booking.id || `schedule-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         type: 'schedule',
         title: `Scheduled: ${booking.title || 'Appointment'}`,
-        message: `${booking.description || ''} on ${new Date(booking.date).toLocaleDateString()} at ${booking.time || 'scheduled time'}`,
+        message: `${booking.description || ''} on ${new Date(booking.date || Date.now()).toLocaleDateString()} at ${booking.time || 'scheduled time'}`,
         status: booking.status || 'upcoming',
         date: booking.createdAt || new Date().toISOString(),
         read: false

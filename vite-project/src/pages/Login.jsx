@@ -127,8 +127,27 @@ const Login = () => {
       </div>
       
       {/* Right Section - Login Form */}
-      <div className="flex flex-col justify-center p-8 md:w-1/2">
-        <div className="max-w-md mx-auto w-full">
+      <div className="flex flex-col justify-center p-8 md:w-1/2 relative">
+        {/* Mobile background - only visible on small screens */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-800 md:hidden">
+          <div className="absolute inset-0 opacity-30" 
+            style={{
+              backgroundImage: "url('https://images.unsplash.com/photo-1568605114967-8130f3a36994?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80')",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              mixBlendMode: 'overlay'
+            }}>
+          </div>
+          <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
+            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-md">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold text-white">PropConnect</h1>
+          </div>
+        </div>
+        <div className="max-w-md mx-auto w-full relative z-10 bg-white p-6 rounded-lg shadow-lg md:shadow-none md:bg-transparent md:p-0">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
             <p className="text-gray-600">Sign in to access your dashboard</p>
