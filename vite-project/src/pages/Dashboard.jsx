@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import Header from '../components/dashboard/Header';
 import MaintenanceCard from '../components/dashboard/MaintenanceCard';
 import { Users, Building, Home, Settings, User, Clipboard, BarChart } from 'lucide-react';
+import { generateAvatarUrl } from '../utils/avatarUtils';
 
 const Dashboard = () => {
   const { requests, loading, error, fetchRequests, updateRequest } = useMaintenance();
@@ -292,8 +293,16 @@ const Dashboard = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
-                              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center mr-2">
-                                <User size={16} className="text-gray-600" />
+                              <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center mr-2">
+                                {request.createdBy && typeof request.createdBy === 'object' ? (
+                                  <img 
+                                    src={generateAvatarUrl(request.createdBy)} 
+                                    alt="User avatar" 
+                                    className="h-8 w-8 object-cover"
+                                  />
+                                ) : (
+                                  <User size={16} className="text-gray-600" />
+                                )}
                               </div>
                               <div className="text-sm text-gray-900">
                                 {typeof request.createdBy === 'object' 

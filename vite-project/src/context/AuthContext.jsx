@@ -79,14 +79,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // Update user information
-  const updateUser = useCallback((updatedUserData) => {
-    setUser(prev => {
-      const updatedUser = { ...prev, ...updatedUserData };
+  // Update user data (e.g. after profile edit)
+  const updateUser = useCallback(async (updatedData) => {
+    if (!user) return;
+    
+    try {
+      // Save updated user data to localStorage
+      const updatedUser = { ...user, ...updatedData };
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Update state 
+      setUser(updatedUser);
+      
+      // Log the update for debugging
+      console.log('User data updated:', updatedUser);
+      
       return updatedUser;
-    });
-  }, []);
+    } catch (error) {
+      console.error('Error updating user data:', error);
+      throw error;
+    }
+  }, [user]);
 
   // Create context value - use memoized value to prevent unnecessary re-renders
   const value = {

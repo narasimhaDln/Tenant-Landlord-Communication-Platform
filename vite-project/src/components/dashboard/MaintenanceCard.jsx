@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { PenTool as Tool, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { PenTool as Tool, Clock, AlertTriangle, RefreshCw, User } from 'lucide-react';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useNavigate } from 'react-router-dom';
+import { generateAvatarUrl } from '../../utils/avatarUtils';
 
 const MaintenanceCard = () => {
   const { requests, loading, fetchRequests } = useMaintenance();
@@ -168,7 +169,22 @@ const MaintenanceCard = () => {
               onClick={() => navigate('/maintenance')}
             >
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium">{request.title}</h3>
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full overflow-hidden flex-shrink-0">
+                    {request.createdBy && typeof request.createdBy === 'object' ? (
+                      <img 
+                        src={generateAvatarUrl(request.createdBy)} 
+                        alt="User avatar" 
+                        className="h-6 w-6 object-cover"
+                      />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center">
+                        <User size={12} className="text-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-medium">{request.title}</h3>
+                </div>
                 <span className={`px-3 py-1 rounded-full text-xs ${
                   request.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
                   request.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
