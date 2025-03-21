@@ -1,5 +1,6 @@
 # PropConnect - Tenant-Landlord Communication Platform
-## 🏢 Overview
+
+## 🏢 Overview##
 
 PropConnect is a comprehensive property management application designed to streamline communication between tenants and landlords. This full-stack React application provides a modern, responsive interface for managing maintenance requests, payments, scheduling, and messaging, all in one centralized platform.
 
