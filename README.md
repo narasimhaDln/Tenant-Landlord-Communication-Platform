@@ -5,15 +5,14 @@
 PropConnect is a comprehensive property management application designed to streamline communication between tenants and landlords. This full-stack React application provides a modern, responsive interface for managing maintenance requests, payments, scheduling, and messaging, all in one centralized platform.
 
 
-![PropConnect Logo](https://i.imgur.com/q8WJn0t.png)
+Deployment Link:https://67dd3bbb605cc1008afe8321--regal-sopapillas-bd2ed5.netlify.app/
 
-[![React](https://img.shields.io/badge/React-18.0.0-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-3.0.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0.0-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![React Router](https://img.shields.io/badge/React_Router-6.3.0-CA4245?logo=react-router&logoColor=white)](https://reactrouter.com/)
-[![Lucide](https://img.shields.io/badge/Lucide-0.94.0-000000?logo=lucide&logoColor=white)](https://lucide.dev/)
-[![JavaScript](https://img.shields.io/badge/JavaScript-ES6-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+GitHub Link:https://github.com/narasimhaDln/Tenant-Landlord-Communication-Platform
+
+
+Screenshots:
+https://docs.google.com/document/d/1SoB2g6WfpqWYQRRsKIBMhgmV7_YNiEO2TnzO2852P_Y/edit?usp=sharing
+
 
 ## ✨ Key Features
 
