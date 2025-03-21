@@ -6,8 +6,8 @@
  * Available avatar styles
  */
 export const AVATAR_STYLES = [
+  { id: 'avataaars', name: 'Professional', colors: ['b6e3f4,c0aede,d1d4f9', 'ffd5dc,ffdfbf,ffffbf', 'ffdfbf,ffd5dc,d1d4f9'] },
   { id: 'micah', name: 'Minimalist', colors: ['b6e3f4,c0aede,d1d4f9', 'ffd5dc,ffdfbf,ffffbf', 'a0d2db,bee5bf,eef0d5'] },
-  { id: 'avataaars', name: 'Illustrated', colors: ['b6e3f4,c0aede,d1d4f9', 'ffd5dc,ffdfbf,ffffbf', 'ffdfbf,ffd5dc,d1d4f9'] },
   { id: 'bottts', name: 'Robot', colors: ['ffdfbf,ffd5dc,d1d4f9', 'a0d2db,bee5bf,eef0d5', 'c0aede,d1d4f9,ffd5dc'] },
   { id: 'pixel-art', name: 'Pixel', colors: ['b6e3f4,c0aede,d1d4f9', 'ffdfbf,ffd5dc,d1d4f9', 'a0d2db,bee5bf,eef0d5'] },
   { id: 'lorelei', name: 'Cartoon', colors: ['b6e3f4,c0aede,d1d4f9', 'ffd5dc,ffdfbf,ffffbf', 'a0d2db,bee5bf,eef0d5'] }
@@ -20,7 +20,7 @@ export const AVATAR_STYLES = [
  */
 export const getUserAvatarPreferences = (user) => {
   const defaultPrefs = {
-    style: 'micah',
+    style: 'avataaars',
     colorSet: 0,
     radius: 50
   };
@@ -78,46 +78,31 @@ export const saveUserAvatarPreferences = (user, prefs) => {
 export const generateAvatarUrl = (user, overridePrefs = null) => {
   // If user is null/undefined, return a default random avatar
   if (!user) {
-    return `https://api.dicebear.com/7.x/micah/svg?seed=default&backgroundColor=b6e3f4,c0aede,d1d4f9&radius=50`;
+    return `https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff`;
   }
 
   // Get the seed based on user data
   let seed;
+  let name = '';
   if (typeof user === 'object') {
     // Get a stable seed from user data (prefer _id, then email, then name)
-    seed = user._id || user.email || user.name || Math.random().toString();
+    seed = user._id || user.email || user.name || 'default';
+    name = user.name || user.email || 'User';
+    
+    // Make sure seed is clean and URL-friendly
+    seed = encodeURIComponent(String(seed).trim());
   } else {
     // If user is a string (ID, email or name), use it directly
-    seed = user;
+    seed = encodeURIComponent(String(user).trim());
+    name = user;
   }
 
   // Get user preferences (or use overrides if provided)
   const prefs = overridePrefs || getUserAvatarPreferences(user);
-  const style = prefs.style || 'micah';
   
-  // Find the style in our styles array
-  const styleObj = AVATAR_STYLES.find(s => s.id === style) || AVATAR_STYLES[0];
-  
-  // Get the color set (or default to first one)
-  const colorIndex = prefs.colorSet !== undefined ? prefs.colorSet : 0;
-  const colorSet = styleObj.colors[colorIndex] || styleObj.colors[0];
-  
-  // Get the radius (or default to 50)
-  const radius = prefs.radius !== undefined ? prefs.radius : 50;
-
-  // Build options based on selected style
-  let options = `seed=${seed}&backgroundColor=${colorSet}&radius=${radius}`;
-  
-  // Add style-specific options
-  if (style === 'avataaars') {
-    options += '&mouth=smile,laughing&eyes=normal,happy,wink';
-  } else if (style === 'bottts') {
-    options += '&colorful=1';
-  } else if (style === 'pixel-art') {
-    options += '&scale=80';
-  }
-
-  return `https://api.dicebear.com/7.x/${style}/svg?${options}`;
+  // Instead of using DiceBear which might be causing issues,
+  // let's use UI Avatars which is more reliable for initials-based avatars
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D8ABC&color=fff&size=256`;
 };
 
 /**
