@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { auth } from '../services/api';
-import { Eye, EyeOff, Mail, Lock, Info, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Info, AlertCircle, User, Building } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -14,14 +17,22 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginAttempts, setLoginAttempts] = useState(0);
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
+  
+  // Get redirect path from location state or default to dashboard
+  const from = location.state?.from?.pathname || '/dashboard';
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      navigate('/');
-    }
-  }, [navigate]);
+  // Demo account credentials
+  const demoAccounts = [
+    { role: 'Admin', email: 'admin@example.com', password: 'admin123' },
+    { role: 'Tenant', email: 'tenant@example.com', password: 'tenant123' },
+    { role: 'Owner', email: 'owner@example.com', password: 'owner123' }
+  ];
+  
+  // Set demo credentials to the form
+  const setDemoCredentials = (email, password) => {
+    setFormData({ email, password });
+  };
 
   // Pre-fill email if saved in localStorage
   useEffect(() => {
@@ -39,9 +50,8 @@ const Login = () => {
       setError(null);
       const response = await auth.login(formData);
       
-      // Save to localStorage
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      // Use the login function from AuthContext
+      login(response.data.token, response.data.user);
       
       // Handle remember me
       if (rememberMe) {
@@ -50,9 +60,8 @@ const Login = () => {
         localStorage.removeItem('rememberedEmail');
       }
       
-      // Use window.location.href to force a full page reload
-      // This ensures the App component re-evaluates the token
-      window.location.href = '/';
+      // Navigate to the redirect path (either previous location or dashboard)
+      navigate(from, { replace: true });
     } catch (err) {
       setLoginAttempts(prev => prev + 1);
       setError(err.message || 'Login failed. Please try again.');
@@ -62,6 +71,7 @@ const Login = () => {
   };
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleDemoAccounts = () => setShowDemoAccounts(!showDemoAccounts);
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50">
@@ -122,6 +132,48 @@ const Login = () => {
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
             <p className="text-gray-600">Sign in to access your dashboard</p>
+          </div>
+          
+          {/* Demo Accounts Card */}
+          <div className="mb-6">
+            <button 
+              className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-left text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-50"
+              onClick={toggleDemoAccounts}
+            >
+              <div className="flex items-center">
+                <Info className="mr-2 h-5 w-5" />
+                <span>Use Demo Accounts</span>
+              </div>
+              <span className="text-blue-500">
+                {showDemoAccounts ? '−' : '+'}
+              </span>
+            </button>
+            
+            {showDemoAccounts && (
+              <div className="mt-2 p-4 bg-blue-50 rounded-md text-sm animate-fadeIn">
+                <p className="text-gray-700 mb-2">Choose a demo account to login with different roles:</p>
+                <div className="space-y-2">
+                  {demoAccounts.map((account, index) => (
+                    <div 
+                      key={index} 
+                      className="flex items-center justify-between p-2 bg-white rounded border border-blue-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                      onClick={() => setDemoCredentials(account.email, account.password)}
+                    >
+                      <div className="flex items-center">
+                        {account.role === 'Admin' ? (
+                          <Building size={16} className="mr-2 text-blue-600" />
+                        ) : (
+                          <User size={16} className="mr-2 text-blue-600" />
+                        )}
+                        <span className="font-medium">{account.role}</span>
+                      </div>
+                      <div className="text-gray-500">{account.email}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-500">Click on any account to auto-fill the credentials.</p>
+              </div>
+            )}
           </div>
           
           {error && (
@@ -230,7 +282,7 @@ const Login = () => {
                     Signing in...
                   </div>
                 ) : (
-                  'Login in'
+                  'Login'
                 )}
               </button>
             </div>

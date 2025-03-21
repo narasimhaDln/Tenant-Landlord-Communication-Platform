@@ -3,58 +3,88 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  // Initialize state from localStorage if available, but with deferred loading
+  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Initialize auth state from localStorage
+  // Load authentication state from localStorage with a delay
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    // Check if we're on the login page
+    const isLoginPage = window.location.pathname === '/login';
     
-    if (token && userData) {
-      setUser(JSON.parse(userData));
-      setIsAuthenticated(true);
+    // Don't auto-login if user is on the login page
+    if (isLoginPage) {
+      setLoading(false);
+      return;
+    }
+    
+    // Load auth state from localStorage for other pages
+    const savedToken = localStorage.getItem('token');
+    
+    if (savedToken) {
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
+        } else {
+          // Clear token if user data missing
+          localStorage.removeItem('token');
+        }
+      } catch (err) {
+        console.error('Error loading auth state:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     
     setLoading(false);
   }, []);
 
   // Login function
-  const login = useCallback((token, userData) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = (authToken, userData) => {
+    setToken(authToken);
     setUser(userData);
-    setIsAuthenticated(true);
-  }, []);
+    
+    // Save to localStorage for persistence
+    localStorage.setItem('token', authToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    
+    setLoading(false);
+  };
 
   // Logout function
-  const logout = useCallback(() => {
+  const logout = () => {
+    setToken(null);
+    setUser(null);
+    
+    // Clear localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    setUser(null);
-    setIsAuthenticated(false);
-    window.location.href = '/login';
-  }, []);
-
-  // Check if token is expired (sample implementation)
-  const isTokenExpired = useCallback(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return true;
     
-    // Here you'd typically decode JWT and check expiration
-    // For this example, we'll return false (not expired)
-    return false;
-  }, []);
+    // Also clear maintenance requests to avoid persistence issues
+    localStorage.removeItem('maintenanceRequests');
+    
+    setLoading(false);
+  };
 
-  // Value to be provided to consumers
+  // Update user information
+  const updateUser = (updatedUserData) => {
+    const updatedUser = { ...user, ...updatedUserData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  // Create context value
   const value = {
+    token,
     user,
     loading,
-    isAuthenticated,
     login,
     logout,
-    isTokenExpired
+    updateUser,
+    isAuthenticated: !!token
   };
 
   return (
@@ -71,3 +101,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+export default AuthContext;

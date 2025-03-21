@@ -20,9 +20,9 @@ const DateDivider = ({ date }) => {
   }
 
   return (
-    <div className="flex items-center justify-center my-4">
+    <div className="flex items-center justify-center my-2 sm:my-4">
       <div className="flex-1 border-t border-gray-200"></div>
-      <span className="px-4 text-sm text-gray-500 bg-white">{displayDate}</span>
+      <span className="px-2 sm:px-4 text-xs sm:text-sm text-gray-500 bg-gray-50 sm:bg-white">{displayDate}</span>
       <div className="flex-1 border-t border-gray-200"></div>
     </div>
   );

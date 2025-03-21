@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { auth } from '../services/api';
 import { Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -74,10 +76,9 @@ const Register = () => {
         role: formData.role
       });
       
-      // Auto login after successful registration
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      navigate('/');
+      // Use the login function from AuthContext
+      login(response.data.token, response.data.user);
+      navigate('/dashboard');
     } catch (err) {
       setErrors({ submit: err.message || 'Registration failed. Please try again.' });
     } finally {
