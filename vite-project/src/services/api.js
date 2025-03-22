@@ -3,11 +3,14 @@ import axios from 'axios';
 // Get the API URL from environment variable with fallback
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Make sure the API URL doesn't have a trailing slash
+const apiBaseUrl = API_URL.endsWith('/') ? API_URL.slice(0, -1) : API_URL;
+
 // Helper to check if we're on a deployed environment
 const isProduction = window.location.hostname !== 'localhost';
 
 // Log the API configuration once on startup
-console.log(`API configured with ${API_URL} (${isProduction ? 'production' : 'development'} mode)`);
+console.log(`API configured with ${apiBaseUrl} (${isProduction ? 'production' : 'development'} mode)`);
 
 // Always use MongoDB - backend is already running
 let USE_MOCK_DATA = false;
@@ -141,8 +144,8 @@ const MOCK_USERS = [
 ];
 
 const api = axios.create({
-  baseURL: API_URL,
-  timeout: 10000,
+  baseURL: apiBaseUrl,
+  timeout: 15000, // Increased timeout for deployed environments
   headers: {
     'Content-Type': 'application/json',
   },
@@ -183,7 +186,7 @@ api.interceptors.response.use(
       error.deploymentInfo = {
         environment: 'production',
         possibleIssue: 'Backend not deployed or CORS not configured',
-        apiUrl: API_URL,
+        apiUrl: apiBaseUrl,
         clientUrl: window.location.origin
       };
     }
@@ -307,13 +310,25 @@ export const auth = {
 // Function to test database connection
 export const testConnection = async () => {
   try {
+    console.log(`Testing connection to ${apiBaseUrl}/api/health`);
     const response = await api.get('/api/health');
     return response.data;
   } catch (error) {
-    if (isProduction && (!error.response || error.message === 'Network Error')) {
+    console.error('Connection test failed:', error);
+    
+    if (isProduction) {
+      // Check if this is a CORS error
+      if (error.message.includes('Network Error') || error.message.includes('CORS')) {
+        throw new Error(
+          'CORS error detected. Your backend needs to allow requests from: ' + 
+          window.location.origin + '. Backend URL: ' + apiBaseUrl
+        );
+      }
+      
       throw new Error(
-        'Cannot connect to backend server. If you\'ve deployed to Netlify, ' +
-        'you need to deploy your backend separately and configure the VITE_API_URL.'
+        'Cannot connect to backend server at ' + apiBaseUrl + '. ' +
+        'If you\'ve deployed to Netlify, make sure your backend allows CORS from: ' + 
+        window.location.origin
       );
     }
     throw error;
