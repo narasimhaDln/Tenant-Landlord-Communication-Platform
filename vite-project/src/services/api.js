@@ -1,7 +1,13 @@
 import axios from 'axios';
 
-// Get API URL from environment or use the default
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// Get the API URL from environment variable with fallback
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Helper to check if we're on a deployed environment
+const isProduction = window.location.hostname !== 'localhost';
+
+// Log the API configuration once on startup
+console.log(`API configured with ${API_URL} (${isProduction ? 'production' : 'development'} mode)`);
 
 // Always use MongoDB - backend is already running
 let USE_MOCK_DATA = false;
@@ -136,49 +142,53 @@ const MOCK_USERS = [
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 });
 
-// Add token to requests if it exists
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-    
-    // Verify token format
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    // Try to get the token from localStorage
     try {
-      const isValidToken = token.split('.').length === 3;
-      if (!isValidToken) {
-        console.warn('Invalid token format detected in request interceptor');
-        // Don't clear token here - let AuthContext handle that
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
-    } catch (err) {
-      console.error('Error validating token format:', err);
+    } catch (error) {
+      console.warn('Error accessing localStorage:', error);
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
 
-// Add response interceptor to handle errors
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('API Error:', error.response.data);
-      return Promise.reject(error.response.data);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('No response received:', error.request);
-      return Promise.reject({ message: 'No response from server' });
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('Error:', error.message);
-      return Promise.reject({ message: error.message });
+    // Add deployment-specific error information
+    if (isProduction && (!error.response || error.message === 'Network Error')) {
+      console.error(
+        'Network error detected in production environment. ' +
+        'This may be due to missing backend deployment or CORS issues.',
+        error
+      );
+      
+      // Enhance the error object with deployment info
+      error.deploymentInfo = {
+        environment: 'production',
+        possibleIssue: 'Backend not deployed or CORS not configured',
+        apiUrl: API_URL,
+        clientUrl: window.location.origin
+      };
     }
+    
+    return Promise.reject(error);
   }
 );
 
@@ -297,50 +307,16 @@ export const auth = {
 // Function to test database connection
 export const testConnection = async () => {
   try {
-    console.log('Testing MongoDB connection to:', API_URL);
-    
-    // Set up timeout with AbortController
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
-    
-    try {
-      const response = await fetch(`${API_URL}/auth/status`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      clearTimeout(timeoutId);
-      console.log(`✅ MongoDB server connection successful: ${response.status}`);
-      
-      return {
-        connected: true,
-        mode: 'mongodb',
-        message: 'Connected to MongoDB database successfully.',
-        details: {
-          status: response.status,
-          statusText: response.statusText
-        }
-      };
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error('❌ MongoDB connection error:', error.message);
-      
-      return {
-        connected: false,
-        mode: 'error',
-        message: 'Cannot connect to MongoDB server.',
-        error: error.message || 'Unknown error'
-      };
-    }
+    const response = await api.get('/api/health');
+    return response.data;
   } catch (error) {
-    console.error('❌ Connection test failed:', error);
-    return {
-      connected: false,
-      mode: 'error',
-      message: 'Error testing MongoDB connection.',
-      error: error.message || 'Unknown error'
-    };
+    if (isProduction && (!error.response || error.message === 'Network Error')) {
+      throw new Error(
+        'Cannot connect to backend server. If you\'ve deployed to Netlify, ' +
+        'you need to deploy your backend separately and configure the VITE_API_URL.'
+      );
+    }
+    throw error;
   }
 };
 

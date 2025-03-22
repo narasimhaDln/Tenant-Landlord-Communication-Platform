@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { testConnection } from '../services/api';
-import { Database, HardDrive, AlertCircle, RefreshCw, CheckCircle } from 'lucide-react';
+import { Database, HardDrive, AlertCircle, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const ConnectionStatus = () => {
   const [status, setStatus] = useState({
@@ -10,6 +10,7 @@ const ConnectionStatus = () => {
     message: 'Checking connection...'
   });
   const [isRetrying, setIsRetrying] = useState(false);
+  const [error, setError] = useState(null);
 
   const checkConnection = async () => {
     try {
@@ -26,6 +27,7 @@ const ConnectionStatus = () => {
         mode: 'error',
         message: 'Error checking connection: ' + (error.message || 'Unknown error')
       });
+      setError(error);
     } finally {
       setIsRetrying(false);
     }
@@ -34,6 +36,9 @@ const ConnectionStatus = () => {
   useEffect(() => {
     checkConnection();
   }, []);
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'Not configured';
+  const isProduction = window.location.hostname !== 'localhost';
 
   if (status.loading) {
     return (
@@ -45,63 +50,63 @@ const ConnectionStatus = () => {
   }
 
   return (
-    <div className={`text-xs p-3 rounded mt-4 ${
-      status.mode === 'mongodb' 
-        ? 'bg-green-50 text-green-700' 
-        : status.mode === 'mock' 
-        ? 'bg-yellow-50 text-yellow-700'
-        : 'bg-red-50 text-red-700'
-    }`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          {status.mode === 'mongodb' ? (
-            <Database size={14} className="mr-1" />
-          ) : status.mode === 'mock' ? (
-            <HardDrive size={14} className="mr-1" />
+    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-lg mt-4">
+      <div className="flex items-start">
+        <AlertTriangle className="w-5 h-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" />
+        <div>
+          <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+            {isProduction 
+              ? "Backend Connection Issue (Deployment)" 
+              : "Can't connect to MongoDB"}
+          </h3>
+          
+          {isProduction ? (
+            <>
+              <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                This is a deployment issue with your backend server. For Netlify deployments:
+              </p>
+              <ul className="mt-1 text-sm text-yellow-700 dark:text-yellow-400 list-disc list-inside ml-4 space-y-1">
+                <li>Your backend server needs to be deployed separately (Netlify only hosts frontend)</li>
+                <li>Update your environment variables in Netlify dashboard</li>
+                <li>Set <code className="bg-yellow-100 dark:bg-yellow-900 px-1 rounded">VITE_API_URL</code> to your deployed backend URL</li>
+                <li>Make sure CORS is configured on your backend to allow your Netlify domain</li>
+                <li>Redeploy your application after making these changes</li>
+              </ul>
+              <div className="mt-3 text-xs text-yellow-600 dark:text-yellow-500 bg-yellow-100 dark:bg-yellow-900/30 p-2 rounded">
+                <p className="font-semibold">Quick Fix:</p>
+                <ol className="list-decimal list-inside ml-2 space-y-1">
+                  <li>Deploy your backend to a service like Render, Railway, or Heroku</li>
+                  <li>Add your Netlify URL to the CORS allowed origins in your backend</li>
+                  <li>Add your backend URL as VITE_API_URL in Netlify environment variables</li>
+                </ol>
+              </div>
+            </>
           ) : (
-            <AlertCircle size={14} className="mr-1" />
+            <>
+              <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+                Please check that:
+              </p>
+              <ul className="mt-1 text-sm text-yellow-700 dark:text-yellow-400 list-disc list-inside ml-4 space-y-1">
+                <li>MongoDB server is running</li>
+                <li>Backend server is running at {apiUrl}</li>
+                <li>The browser can connect to the backend (no network blocks/CORS issues)</li>
+              </ul>
+            </>
           )}
-          <span>{status.message}</span>
-        </div>
-        <button 
-          className="text-xs p-1 hover:bg-gray-100 rounded-full"
-          onClick={checkConnection}
-          disabled={isRetrying}
-        >
-          <RefreshCw size={12} className={isRetrying ? "animate-spin" : ""} />
-        </button>
-      </div>
-      
-      {status.mode === 'mock' && (
-        <div className="mt-2 text-xs bg-white p-2 rounded border border-yellow-200">
-          <div className="flex items-center">
-            <CheckCircle size={12} className="mr-1 text-yellow-500" />
-            <span className="font-medium">App is working in offline mode</span>
-          </div>
-          <p className="mt-1">
-            Your data is being stored locally in your browser. <br />
-            User credentials and data will not be saved to MongoDB.
-          </p>
-        </div>
-      )}
-      
-      {status.mode === 'error' && (
-        <div className="mt-2 text-xs bg-white p-2 rounded border border-red-200">
-          <p>The app can't connect to MongoDB. Please make sure:</p>
-          <ul className="list-disc pl-5 mt-1">
-            <li>MongoDB server is running</li>
-            <li>Backend server is running at <code className="bg-gray-100 px-1">http://localhost:5000</code></li>
-            <li>The browser can connect to the backend (no network blocks/CORS issues)</li>
-          </ul>
-          <div className="mt-2">
-            <p className="font-medium text-gray-700">Current configuration:</p>
-            <p>API URL: <code className="bg-gray-100 px-1">{import.meta.env.VITE_API_URL}</code></p>
-            {status.error && (
-              <p className="mt-1 text-red-500">Error: {status.error}</p>
+          
+          <div className="mt-3">
+            <p className="text-xs text-yellow-600 dark:text-yellow-500">Current configuration:</p>
+            <p className="text-xs font-mono mt-1 bg-yellow-100 dark:bg-yellow-900/30 p-1.5 rounded">
+              API URL: {apiUrl}
+            </p>
+            {error && (
+              <p className="text-xs font-mono mt-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-1.5 rounded">
+                Error: {error.toString()}
+              </p>
             )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
